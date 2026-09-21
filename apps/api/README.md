@@ -12,7 +12,10 @@ From `apps/api`, start the development server:
 uvicorn main:app --reload
 ```
 
-Open `/docs` for Swagger UI or `/openapi.json` for the API schema.
+Set `DEV=true` (the default) to enable `/docs` for Swagger UI, `/redoc` for ReDoc,
+and `/openapi.json` for the API schema. Set `DEV=false` in production to disable
+all three, including Swagger's OAuth redirect route; they return 404. Restart
+the API after changing this setting. Regular API endpoints remain available.
 The scaffold starts without provider credentials; provider configuration is
 required when integrating the unfinished services.
 

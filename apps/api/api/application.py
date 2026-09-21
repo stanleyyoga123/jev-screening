@@ -9,6 +9,7 @@ from core.errors import FeatureNotImplementedError
 from api.router import api_router
 from api.middleware import RequestLoggingMiddleware
 from config.logging import LoggingSettings
+from config.application import ApplicationSettings
 from core.logging import configure_logging
 
 
@@ -25,8 +26,16 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
+    settings = ApplicationSettings()
     configure_logging(LoggingSettings().log_level)
-    application = FastAPI(title="Resume Screening API", version="0.1.0", lifespan=lifespan)
+    application = FastAPI(
+        title="Resume Screening API",
+        version="0.1.0",
+        lifespan=lifespan,
+        docs_url="/docs" if settings.dev else None,
+        redoc_url="/redoc" if settings.dev else None,
+        openapi_url="/openapi.json" if settings.dev else None,
+    )
     application.add_middleware(RequestLoggingMiddleware)
     application.include_router(api_router)
 

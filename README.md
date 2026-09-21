@@ -121,6 +121,58 @@ For separate startup or a custom API address, see the
 | `JEV_MODEL` | Decision model; defaults to `~typesafe/jev-latest`. |
 | `PROVIDER_TIMEOUT_SECONDS` | Provider HTTP timeout in seconds. Defaults to 120; the example environment also sets 120. Applies to generation and screening. |
 | `LOG_LEVEL` | Console verbosity, default `INFO`. |
+| `DEV` | Defaults to `true`. Set `false` to disable Swagger UI, ReDoc, and the OpenAPI schema endpoint. Restart or redeploy after changing it. |
+
+## Deploy to Vercel
+
+Import this GitHub repository into **two Vercel projects**, deploying the API first.
+Do not use the repository root as either project's Root Directory or run `run.sh`
+on Vercel; that command is for local development.
+
+### 1. Deploy the API
+
+- Set **Root Directory** to `apps/api` and **Framework Preset** to **FastAPI**.
+- Keep the framework's default install/build commands and output settings.
+- Add `OPENROUTER_API_KEY` as a backend environment variable, and set
+  `PROVIDER_TIMEOUT_SECONDS=120` and `DEV=false`. Model overrides are optional;
+  see Configuration above. `DEV=false` disables `/docs`, `/redoc`, and `/openapi.json`.
+- Deploy, then open `https://YOUR-API-DOMAIN/api/health`; expect `{"status":"ok"}`.
+
+`apps/api/vercel.json` enables Fluid Compute and sets `main.py`'s maximum duration
+to 300 seconds. `.python-version` selects Python 3.13. Dependencies come from
+`requirements.txt`; Vercel discovers the exported FastAPI `app` in `main.py`.
+The 120-second provider HTTP timeout is separate from the function duration.
+See [Vercel's FastAPI guide](https://vercel.com/docs/frameworks/backend/fastapi)
+and [Python runtime guide](https://vercel.com/docs/functions/runtimes/python).
+
+### 2. Deploy the frontend
+
+- Import the same repository again. Set **Root Directory** to `apps/web` and
+  **Framework Preset** to **Vite**.
+- Set the frontend environment variable `BACKEND_URL` to the API's stable
+  production origin, for example `https://your-api.vercel.app`, without `/api`.
+  Set it for each deployment environment you use (Production and/or Preview).
+- Deploy. `apps/web/vercel.ts` configures `npm ci`, `npm run build`, and `dist`.
+  It rewrites `/api/:path*` to the backend's `/api/:path*`, keeping browser requests
+  on the frontend origin without adding CORS configuration.
+- Open `https://YOUR-FRONTEND-DOMAIN/api/health` to verify the connection, then try
+  a PDF upload and **Use your own AI** to check parsing and prompt loading without
+  making paid model calls.
+
+`BACKEND_URL` is read when Vercel evaluates its deployment configuration; redeploy
+the frontend after changing it. A missing or invalid origin fails configuration
+with a message. Local Vite still uses `API_PROXY_TARGET` and does not need
+`BACKEND_URL`. See [Vercel's programmatic configuration guide](https://vercel.com/docs/project-configuration/vercel-ts).
+
+The API destination must be reachable by the frontend rewrite. A login page or
+401/403 response can indicate that Vercel Deployment Protection blocks the API
+deployment; configure access for your intended audience. Use the stable production
+domain rather than a temporary preview URL. Keep the OpenRouter key only in the
+backend project's environment variables.
+
+Vercel limits function request/response payloads to 4.5 MB; the frontend caps PDF
+uploads at 4 MB. Generation may still time out, so the external-AI workflow remains
+available. See [Vercel function limits](https://vercel.com/docs/functions/limitations).
 
 ## Architecture
 

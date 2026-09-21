@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "fastapi",
+  "fluid": true,
+  "functions": {
+    "main.py": {
+      "maxDuration": 300
+    }
+  }
+}
