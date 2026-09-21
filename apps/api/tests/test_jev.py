@@ -8,24 +8,23 @@ import httpx
 from pydantic import ValidationError
 
 from config.settings import Settings
-from integrations.openrouter import OpenRouterProvider
-from integrations.jev import JevResponse
+from integrations.jev import JevProvider, JevResponse
 
 
 QUESTIONS = {"skill": {"type": "noul", "instructions": "Is Python mentioned?"}}
 
 
-class ProviderTests(unittest.IsolatedAsyncioTestCase):
+class JevProviderTests(unittest.IsolatedAsyncioTestCase):
     def settings(self):
         return Settings(_env_file=None, openrouter_api_key="test-key")
 
     @asynccontextmanager
     async def provider(
         self, handler: Callable[[httpx.Request], httpx.Response]
-    ) -> AsyncIterator[OpenRouterProvider]:
+    ) -> AsyncIterator[JevProvider]:
         client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-        with patch("integrations.openrouter.httpx.AsyncClient", return_value=client):
-            provider = OpenRouterProvider(self.settings())
+        with patch("integrations.jev.httpx.AsyncClient", return_value=client):
+            provider = JevProvider(self.settings())
         try:
             async with provider:
                 yield provider

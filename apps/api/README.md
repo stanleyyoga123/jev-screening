@@ -34,7 +34,7 @@ domains/
     router.py               HTTP endpoints wired to the feature factory
     schema.py               Request and response validation schemas
     service.py              Application operations
-integrations/               OpenRouter, Jev transport schemas, and PDF reader
+integrations/               Jev client and transport schemas, and PDF reader
 utility/                    Shared helpers as needed
 ```
 
@@ -93,12 +93,12 @@ python -m unittest discover -s tests -p test_documents.py -v
 import asyncio
 
 from config.settings import Settings
-from integrations.openrouter import OpenRouterProvider
+from integrations.jev import JevProvider
 
 
 async def main():
     settings = Settings()
-    async with OpenRouterProvider(settings) as provider:
+    async with JevProvider(settings) as provider:
         result = await provider.hit(
             state="The resume describes three years building Python APIs.",
             questions={
@@ -130,7 +130,7 @@ propagate as httpx exceptions. Malformed JSON or an invalid response shape raise
 Pydantic `ValidationError`; missing requested answer keys raise `ValueError`.
 Do not log exception request bodies or authentication headers. The provider does
 not persist or log requests/results. Callers supply `Settings`; the provider
-creates and reuses its own HTTP client. Use `async with OpenRouterProvider(settings)`
+creates and reuses its own HTTP client. Use `async with JevProvider(settings)`
 to close it automatically, or call `await provider.aclose()` when finished.
 
 Run mocked tests without an API key or paid requests:

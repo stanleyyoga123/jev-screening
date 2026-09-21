@@ -69,7 +69,7 @@ class JevResponse(BaseModel):
     answers: dict[str, JsonValue]
 
 
-class OpenRouterProvider:
+class JevProvider:
     def __init__(self, settings: Settings) -> None:
         self._url = "https://openrouter.ai/api/alpha/decisions"
         self._model = settings.jev_model
@@ -95,5 +95,5 @@ class OpenRouterProvider:
         response.raise_for_status()
         result = JevResponse.model_validate_json(response.content)
         if not payload.questions.keys() <= result.answers.keys():
-            raise ValueError("OpenRouter response is missing requested answers")
+            raise ValueError("Jev response is missing requested answers")
         return result
