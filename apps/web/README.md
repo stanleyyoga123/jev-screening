@@ -36,6 +36,10 @@ To change the backend address, copy `.env.example` to `.env` and edit
 3. **Run screening** sends the resume string and question dictionary to `/api/screen`.
 4. Expand a result to read the question, outcome description, and probabilities.
 
+Built-in question generation can take a long time. We recommend preparing questions
+with ChatGPT or your preferred AI tool when generation is slow. The default provider
+timeout is 120 seconds.
+
 To generate questions with ChatGPT or another AI tool, select **Use your own AI**
 in the questions pane, then **Copy prompt**. This loads the same prompt used by
 the built-in generator from `/api/criteria/prompt` (the backend must be running;

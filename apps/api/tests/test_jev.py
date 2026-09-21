@@ -44,7 +44,7 @@ class JevProviderTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(json.loads(request.content), {
                 "model": "~typesafe/jev-latest", "state": "Python", "questions": QUESTIONS
             })
-            self.assertEqual(request.extensions["timeout"]["read"], 25)
+            self.assertEqual(request.extensions["timeout"]["read"], 120)
             return httpx.Response(200, json=result)
 
         async with self.provider(handler) as provider:

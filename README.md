@@ -48,6 +48,13 @@ flowchart LR
     Jev --> Report[Per-question report]
 ```
 
+**Question generation can take a long time.** For a smoother workflow, we recommend
+using ChatGPT or your preferred AI tool to prepare the questions. Select **Use your
+own AI → Copy prompt** in the frontend, paste the prompt and job description into
+your AI tool, then paste the returned JSON into **questions.json** and select
+**Check & format**. Review the requirements before screening. The built-in
+generator remains available, with a default provider timeout of 120 seconds.
+
 The generator creates the questions; Jev answers them. Both integrations use
 OpenRouter, with separate model settings. The generation prompt is available in
 [the criteria domain](apps/api/domains/criteria/prompt.py) and through
@@ -112,7 +119,7 @@ For separate startup or a custom API address, see the
 | `OPENROUTER_API_KEY` | Backend credential for generation and screening. |
 | `GENERATOR_MODEL` | Generation model; defaults to `z-ai/glm-5.3-flash`. |
 | `JEV_MODEL` | Decision model; defaults to `~typesafe/jev-latest`. |
-| `PROVIDER_TIMEOUT_SECONDS` | HTTP timeout. The example environment sets 60 seconds; the code default is 25. |
+| `PROVIDER_TIMEOUT_SECONDS` | Provider HTTP timeout in seconds. Defaults to 120; the example environment also sets 120. Applies to generation and screening. |
 | `LOG_LEVEL` | Console verbosity, default `INFO`. |
 
 ## Architecture
