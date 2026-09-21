@@ -35,7 +35,7 @@ class CriteriaValidationTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.json(), {'success': True, 'data': {'questions': questions}})
                 GeneratedCriteria.model_validate(response.json()['data'])
-                ScreeningRequest(resume='Python developer', questions=json.dumps(response.json()['data']['questions']))
+                ScreeningRequest(resume='Python developer', questions=response.json()['data']['questions'])
 
     def test_normalizes_default_question_type(self) -> None:
         question = {key: value for key, value in QUESTION.items() if key != 'type'}

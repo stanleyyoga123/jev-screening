@@ -60,10 +60,10 @@ class ScreeningTests(unittest.TestCase):
     def screen(self) -> httpx.Response:
         return self.client.post('/api/screen', json={
             "resume": "Python developer with API experience.",
-            "questions": json.dumps(QUESTIONS),
+            "questions": QUESTIONS,
         })
 
-    def test_string_questions_are_parsed_and_sent_to_jev(self) -> None:
+    def test_question_dictionary_is_sent_to_jev(self) -> None:
         response = self.screen()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"success": True, "data": self.result})
@@ -74,14 +74,14 @@ class ScreeningTests(unittest.TestCase):
         })
 
     def test_invalid_input_never_reaches_jev(self) -> None:
-        valid = {"resume": "Python developer", "questions": json.dumps(QUESTIONS)}
+        valid = {"resume": "Python developer", "questions": QUESTIONS}
         cases = [
             {}, {**valid, "resume": " "}, {**valid, "resume": "x" * 60001},
-            {**valid, "questions": QUESTIONS}, {**valid, "questions": "not json"},
-            {**valid, "questions": "{}"}, {**valid, "questions": "[]"},
-            {**valid, "questions": json.dumps({"questions": QUESTIONS})},
-            {**valid, "questions": json.dumps({"q": {"type": "choice", "instructions": "Pick"}})},
-            {**valid, "questions": json.dumps({str(i): QUESTIONS['python'] for i in range(26)})},
+            {**valid, "questions": json.dumps(QUESTIONS)}, {**valid, "questions": "not json"},
+            {**valid, "questions": {}}, {**valid, "questions": []},
+            {**valid, "questions": {"questions": QUESTIONS}},
+            {**valid, "questions": {"q": {"type": "choice", "instructions": "Pick"}}},
+            {**valid, "questions": {str(i): QUESTIONS['python'] for i in range(26)}},
             {**valid, "model": "untrusted-model"},
         ]
         for body in cases:
@@ -117,9 +117,9 @@ class ScreeningTests(unittest.TestCase):
         self.assertEqual(response.status_code, 502)
         self.assertNotIn('PRIVATE_INVALID_JSON', response.text)
 
-    def test_openapi_exposes_string_fields(self) -> None:
+    def test_openapi_exposes_question_object(self) -> None:
         schema = self.client.get('/openapi.json').json()
         fields = schema['components']['schemas']['ScreeningRequest']['properties']
         self.assertEqual(fields['resume']['type'], 'string')
-        self.assertEqual(fields['questions']['type'], 'string')
+        self.assertEqual(fields['questions']['type'], 'object')
         self.assertIn('200', schema['paths']['/api/screen']['post']['responses'])
