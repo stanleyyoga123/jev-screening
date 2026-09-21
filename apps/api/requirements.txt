@@ -1,6 +1,7 @@
 # API framework and ASGI server
 fastapi==0.141.1
 uvicorn[standard]==0.53.0
+python-multipart==0.0.20
 
 # Request/response validation and environment-based configuration
 pydantic==2.12.5
