@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated, Literal
 
 import httpx
@@ -10,6 +11,10 @@ from pydantic import (
     field_validator,
 )
 from config.settings import Settings
+from core.logging import log_operation
+
+
+logger = logging.getLogger("JevProvider")
 
 Content = str | dict[str, JsonValue] | list[JsonValue]
 Criteria = dict[str, JsonValue] | list[JsonValue]
@@ -85,15 +90,16 @@ class JevProvider:
         state: Content,
         questions: dict[str, Question | dict[str, JsonValue]],
     ) -> JevResponse:
-        payload = JevRequest(model=self._model, state=state, questions=questions)
-        response = await self._client.post(
-            self._url,
-            headers=self._headers,
-            json=payload.model_dump(mode="json", exclude_none=True),
-            timeout=self._timeout,
-        )
-        response.raise_for_status()
-        result = JevResponse.model_validate_json(response.content)
-        if not payload.questions.keys() <= result.answers.keys():
-            raise ValueError("Jev response is missing requested answers")
-        return result
+        with log_operation(logger, "jev.evaluate"):
+            payload = JevRequest(model=self._model, state=state, questions=questions)
+            response = await self._client.post(
+                self._url,
+                headers=self._headers,
+                json=payload.model_dump(mode="json", exclude_none=True),
+                timeout=self._timeout,
+            )
+            response.raise_for_status()
+            result = JevResponse.model_validate_json(response.content)
+            if not payload.questions.keys() <= result.answers.keys():
+                raise ValueError("Jev response is missing requested answers")
+            return result

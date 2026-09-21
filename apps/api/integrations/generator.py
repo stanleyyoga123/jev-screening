@@ -1,9 +1,14 @@
+import logging
 from typing import Annotated, Literal
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from config.settings import Settings
+from core.logging import log_operation
+
+
+logger = logging.getLogger("GeneratorProvider")
 
 
 NonblankText = Annotated[str, Field(min_length=1, pattern=r"\S")]
@@ -65,15 +70,16 @@ class GeneratorProvider:
 
     async def hit(self, messages: list[GeneratorMessage]) -> GeneratorResponse:
         """Generate text without automatic retries or criteria-specific parsing."""
-        payload = GeneratorRequest(model=self._model, messages=messages)
-        response = await self._client.post(
-            self._url,
-            headers=self._headers,
-            json=payload.model_dump(mode="json"),
-            timeout=self._timeout,
-        )
-        response.raise_for_status()
-        return GeneratorResponse.model_validate_json(response.content)
+        with log_operation(logger, "generator.generate"):
+            payload = GeneratorRequest(model=self._model, messages=messages)
+            response = await self._client.post(
+                self._url,
+                headers=self._headers,
+                json=payload.model_dump(mode="json"),
+                timeout=self._timeout,
+            )
+            response.raise_for_status()
+            return GeneratorResponse.model_validate_json(response.content)
 
     async def aclose(self) -> None:
         await self._client.aclose()

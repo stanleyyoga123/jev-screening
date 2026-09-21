@@ -16,6 +16,30 @@ Open `/docs` for Swagger UI or `/openapi.json` for the API schema.
 The scaffold starts without provider credentials; provider configuration is
 required when integrating the unfinished services.
 
+## Console logging
+
+Logs go to stdout using Python's standard `logging` module. Set `LOG_LEVEL` in
+`.env` or the environment to `DEBUG`, `INFO` (default), `WARNING`, `ERROR`, or
+`CRITICAL`. Logging setup does not require provider credentials.
+
+The format is `%(asctime)s | %(levelname)s | %(name)s | %(message)s`.
+Logger names identify components such as `GeneratorProvider`, `CriteriaService`,
+and `RequestLoggingMiddleware`. Request IDs are appended to messages during a request. Request
+logs include the route template, method, status, and duration. Integration and PDF
+extraction logs include operation timings and failure types; criteria generation
+also reports the number of generated questions. Startup and shutdown are logged.
+Responses passing through the middleware include an `X-Request-ID` header for
+matching them to console output.
+
+Application logs omit request/response bodies, query strings, authorization
+headers, filenames, prompts, and extracted text. Unexpected exceptions include
+their type and stack locations, without exception messages, source lines, or
+locals. Uvicorn's raw access logger is replaced by the request middleware logger;
+HTTP and PDF library debug output is suppressed. No log files are created.
+
+Use `logging.getLogger("ClassName")` or a descriptive component name in new modules. Log operation metadata rather
+than input or generated content.
+
 ```text
 main.py                     ASGI entry point (main:app)
 api/
@@ -48,9 +72,9 @@ Add new features under `domains` and register their router in `api/router.py`.
 | --- | --- |
 | `GET /api/health` | Returns `{"status": "ok"}` |
 | `POST /api/documents/parse` | Extracts an uploaded PDF into `StandardResponse[str]` |
-| `POST /api/criteria/generate` | Returns 501 |
+| `POST /api/criteria/generate` | Generates validated Jev questions from a job description |
 | `POST /api/criteria/validate` | Returns 501 |
-| `GET /api/criteria/prompt` | Returns 501 |
+| `GET /api/criteria/prompt` | Returns the generation system prompt |
 | `POST /api/screen` | Returns 501 |
 
 Unfinished services raise `FeatureNotImplementedError`, mapped to HTTP 501 by
@@ -87,14 +111,65 @@ document tests from `apps/api`:
 python -m unittest discover -s tests -p test_documents.py -v
 ```
 
+## Criteria generation
+
+`POST /api/criteria/generate` accepts a JSON job description (1–30,000 characters,
+with nonblank text) and uses the configured generator to create job-related Jev
+Choice questions:
+
+```sh
+curl http://localhost:8000/api/criteria/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"job_description":"Required: professional Python development experience."}'
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "questions": {
+      "role_python": {
+        "type": "choice",
+        "instructions": "Does the resume document professional Python development experience?",
+        "criteria": {
+          "meets": "Professional Python development experience is explicitly documented.",
+          "partial": "Only some relevant experience is documented.",
+          "does_not_meet": "Explicit evidence establishes a shortfall.",
+          "insufficient_evidence": "The resume does not establish the requirement."
+        }
+      }
+    }
+  }
+}
+```
+
+`data.questions` can be passed as the `questions` argument to Jev. Generation
+does not submit a resume to Jev or screen a candidate. The system prompt lives in
+`domains/criteria/prompt.py`; `GET /api/criteria/prompt` returns it in
+`StandardResponse[str]` without calling a provider.
+
+Generated output is validated as 1–20 named Choice questions with the four
+outcomes shown above. The prompt requires requirements grounded in the supplied
+JD and preserves alternatives and required/preferred wording. Schema validation
+checks structure; review the generated requirements before screening.
+
+Invalid requests return 422. Invalid or empty generated questions and upstream
+failures return 502; provider timeouts return 504. Provider output is not echoed
+in error responses. The factory closes the generation client after each request;
+there are no automatic retries or stored results. `/criteria/validate` remains
+an unimplemented placeholder.
+
+```sh
+python -m unittest discover -s tests -p test_criteria.py -v
+```
+
 ## Generator through OpenRouter
 
 `integrations.generator.GeneratorProvider` calls OpenRouter's
 `/api/v1/chat/completions` endpoint using `GENERATOR_MODEL` (default:
 `z-ai/glm-5.3`). It shares `OPENROUTER_API_KEY` and
 `PROVIDER_TIMEOUT_SECONDS` with Jev. This integration accepts text messages;
-criteria prompts, structured question-pack validation, and domain wiring remain
-the responsibility of the future criteria service.
+criteria prompts and generated-question validation belong to the criteria domain.
 
 ```python
 from config.settings import Settings
