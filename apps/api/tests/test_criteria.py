@@ -52,7 +52,7 @@ class CriteriaTests(unittest.TestCase):
 
         self.enterContext(patch("integrations.generator.httpx.AsyncClient", side_effect=create_client))
         self.enterContext(patch("domains.criteria.factory.Settings", return_value=Settings(
-            _env_file=None, openrouter_api_key="test-key", generator_model="z-ai/glm-5.3",
+            _env_file=None, openrouter_api_key="test-key", generator_model="z-ai/glm-5.3-flash",
         )))
         self.client = self.enterContext(TestClient(create_app()))
 
@@ -71,7 +71,7 @@ class CriteriaTests(unittest.TestCase):
         JevRequest(model="test", state="Python developer", questions=response.json()["data"]["questions"])
         self.assertEqual(len(self.requests), 1)
         payload = json.loads(self.requests[0].content)
-        self.assertEqual(payload["model"], "z-ai/glm-5.3")
+        self.assertEqual(payload["model"], "z-ai/glm-5.3-flash")
         self.assertEqual(payload["messages"], [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": description},

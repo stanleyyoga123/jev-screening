@@ -17,7 +17,7 @@ MESSAGES = [
 ]
 RESPONSE = {
     "id": "generation-test",
-    "model": "z-ai/glm-5.3",
+    "model": "z-ai/glm-5.3-flash",
     "choices": [{
         "message": {"role": "assistant", "content": "Python development experience"},
         "finish_reason": "stop",
@@ -32,7 +32,7 @@ class GeneratorTests(unittest.IsolatedAsyncioTestCase):
         self,
         handler: Callable[[httpx.Request], httpx.Response],
         *,
-        model: str = "z-ai/glm-5.3",
+        model: str = "z-ai/glm-5.3-flash",
     ) -> AsyncIterator[GeneratorProvider]:
         settings = Settings(
             _env_file=None,
@@ -59,7 +59,7 @@ class GeneratorTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(request.headers["Content-Type"], "application/json")
             self.assertEqual(request.extensions["timeout"]["read"], 45)
             self.assertEqual(json.loads(request.content), {
-                "model": "z-ai/glm-5.3",
+                "model": "z-ai/glm-5.3-flash",
                 "messages": [message.model_dump() for message in MESSAGES],
                 "stream": False,
             })
@@ -95,7 +95,7 @@ class GeneratorTests(unittest.IsolatedAsyncioTestCase):
             {"role": "user", "content": None},
         ):
             with self.subTest(message=message), self.assertRaises(ValidationError):
-                GeneratorRequest(model="z-ai/glm-5.3", messages=[message])
+                GeneratorRequest(model="z-ai/glm-5.3-flash", messages=[message])
 
     async def test_http_errors_are_not_retried(self) -> None:
         for status in (401, 429, 500):

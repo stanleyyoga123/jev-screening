@@ -224,7 +224,7 @@ python -m unittest discover -s tests -p test_screening.py -v
 
 `integrations.generator.GeneratorProvider` calls OpenRouter's
 `/api/v1/chat/completions` endpoint using `GENERATOR_MODEL` (default:
-`z-ai/glm-5.3`). It shares `OPENROUTER_API_KEY` and
+`z-ai/glm-5.3-flash`). It shares `OPENROUTER_API_KEY` and
 `PROVIDER_TIMEOUT_SECONDS` with Jev. This integration accepts text messages;
 criteria prompts and generated-question validation belong to the criteria domain.
 
@@ -255,7 +255,7 @@ without retries. No paid requests are made by the mocked tests:
 python -m unittest discover -s tests -p test_generator.py -v
 ```
 
-See [GLM 5.3 on OpenRouter](https://openrouter.ai/z-ai/glm-5.3) and
+See [GLM 5.3 Flash on OpenRouter](https://openrouter.ai/z-ai/glm-5.3-flash) and
 [OpenRouter's chat API quickstart](https://openrouter.ai/docs/quickstart).
 
 ## Jev through OpenRouter
