@@ -36,6 +36,15 @@ To change the backend address, copy `.env.example` to `.env` and edit
 3. **Run screening** sends the resume string and question dictionary to `/api/screen`.
 4. Expand a result to read the question, outcome description, and probabilities.
 
+To generate questions with ChatGPT or another AI tool, select **Use your own AI**
+in the questions pane, then **Copy prompt**. This loads the same prompt used by
+the built-in generator from `/api/criteria/prompt` (the backend must be running;
+no model call is made). Your current job description is included, or a placeholder
+is provided. Paste it into your AI tool, then copy the returned JSON into the
+**questions.json** editor and choose **Check & format**. Both a question map and
+an object containing a `questions` key are accepted. Review the generated
+requirements before screening.
+
 Dark and light themes are available in the top bar. Only the theme preference is
 saved locally. Resume, job description, questions, and results stay in React state
 and clear on refresh or **Clear session**. Editing inputs clears stale results;

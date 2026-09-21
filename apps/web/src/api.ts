@@ -19,12 +19,12 @@ export function parseQuestions(text: string): Questions {
   return 'questions' in result && !('type' in result.questions) ? result.questions as Questions : result as Questions;
 }
 
-export async function api<T>(path: string, body: object | FormData, schema: z.ZodType<T>, signal: AbortSignal): Promise<T> {
+export async function api<T>(path: string, body: object | FormData | undefined, schema: z.ZodType<T>, signal: AbortSignal): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`/api${path}`, {
-      method: 'POST', signal,
-      headers: body instanceof FormData ? undefined : { 'Content-Type': 'application/json' },
+      method: body === undefined ? 'GET' : 'POST', signal,
+      headers: body === undefined || body instanceof FormData ? undefined : { 'Content-Type': 'application/json' },
       body: body instanceof FormData ? body : JSON.stringify(body),
     });
   } catch (error) {

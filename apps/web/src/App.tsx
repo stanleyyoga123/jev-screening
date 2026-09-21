@@ -6,6 +6,7 @@ import { api, parseQuestions, questionsSchema, screeningSchema } from './api';
 import type { Questions } from './api';
 import { summarize } from './results';
 import type { ResultRow } from './results';
+import { QuestionPrompt } from './QuestionPrompt';
 
 type Task = 'upload' | 'generate' | 'screen';
 type Report = { rows: ResultRow[]; filename: string; time: string; model?: string };
@@ -57,6 +58,7 @@ export default function App() {
   const [mode, setMode] = useState<'questions' | 'job'>('questions');
   const [questionText, setQuestionText] = useState('');
   const [job, setJob] = useState('');
+  const [showPrompt, setShowPrompt] = useState(false);
   const [busy, setBusy] = useState<Task | null>(null);
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
   const [report, setReport] = useState<Report | null>(null);
@@ -80,6 +82,7 @@ export default function App() {
     event.preventDefault();
     const next = event.key === 'Home' ? 'questions' : event.key === 'End' ? 'job' : mode === 'questions' ? 'job' : 'questions';
     setMode(next);
+    setShowPrompt(false);
     document.getElementById(`tab-${next}`)?.focus();
   }
 
@@ -101,6 +104,7 @@ export default function App() {
   function clear() {
     request.current?.abort(); request.current = null; setBusy(null);
     setResume(''); setFilename('resume.txt'); setPasteMode(false); setQuestionText(''); setJob(''); setReport(null); setMessage(null); setMode('questions');
+    setShowPrompt(false);
     if (fileInput.current) fileInput.current.value = '';
   }
   function upload(file: File | undefined) {
@@ -162,12 +166,13 @@ export default function App() {
           <div className="panel-status"><span>{resume ? <><Check size={12} />Editable text</> : 'Waiting for resume'}</span><span>{number.format(resume.length)} / 60,000 characters</span></div>
         </section>
         <section className="panel questions-panel" aria-label="Questions and job description">
-          <div className="panel-tabs input-tabs" role="tablist" aria-label="Question source"><button className={`tab ${mode === 'questions' ? 'active' : ''}`} id="tab-questions" role="tab" tabIndex={mode === 'questions' ? 0 : -1} onKeyDown={changeTab} aria-selected={mode === 'questions'} aria-controls="criteria-editor" disabled={!!busy} onClick={() => setMode('questions')}><Braces size={15} />questions.json{count > 0 && <span className="tab-count">{count}</span>}</button><button className={`tab ${mode === 'job' ? 'active' : ''}`} id="tab-job" role="tab" tabIndex={mode === 'job' ? 0 : -1} onKeyDown={changeTab} aria-selected={mode === 'job'} aria-controls="criteria-editor" disabled={!!busy} onClick={() => setMode('job')}><FileText size={14} />Job description</button><span className="panel-number">02</span></div>
+          <div className="panel-tabs input-tabs" role="tablist" aria-label="Question source"><button className={`tab ${mode === 'questions' ? 'active' : ''}`} id="tab-questions" role="tab" tabIndex={mode === 'questions' ? 0 : -1} onKeyDown={changeTab} aria-selected={mode === 'questions'} aria-controls="criteria-editor" disabled={!!busy} onClick={() => { setMode('questions'); setShowPrompt(false); }}><Braces size={15} />questions.json{count > 0 && <span className="tab-count">{count}</span>}</button><button className={`tab ${mode === 'job' ? 'active' : ''}`} id="tab-job" role="tab" tabIndex={mode === 'job' ? 0 : -1} onKeyDown={changeTab} aria-selected={mode === 'job'} aria-controls="criteria-editor" disabled={!!busy} onClick={() => { setMode('job'); setShowPrompt(false); }}><FileText size={14} />Job description</button><span className="panel-number">02</span></div>
           <div className="panel-toolbar"><span className="panel-caption">{mode === 'questions' ? 'SCREENING QUESTIONS' : 'GENERATE REQUIREMENTS'}</span>{mode === 'questions' ? <button className="text-button" disabled={!!busy || !questionText.trim()} onClick={formatQuestions}><Braces size={13} />Check & format</button> : <span className="subtle-label">GLM generator</span>}</div>
+          <div className="prompt-toolbar"><button className="text-button" aria-expanded={showPrompt} aria-controls="criteria-editor" onClick={() => setShowPrompt(!showPrompt)}><ClipboardList size={13} />{showPrompt ? 'Back to editor' : 'Use your own AI'}<ChevronDown className={showPrompt ? 'rotate' : ''} size={13} /></button></div>
           <div className="criteria-editor" id="criteria-editor" role="tabpanel" aria-labelledby={`tab-${mode}`} aria-label={mode === 'questions' ? 'Questions JSON' : 'Job description'}>
-            <Editor value={mode === 'questions' ? questionText : job} onChange={mode === 'questions' ? editQuestions : editJob} label={mode === 'questions' ? 'Questions JSON' : 'Job description text'} disabled={!!busy} maxLength={mode === 'job' ? 30000 : 100000} mono={mode === 'questions'} placeholder={mode === 'questions' ? '{\n  "role_python": {\n    "type": "noul",\n    "instructions": "Is Python experience documented?"\n  }\n}\n\nPaste your question map here, or use the\nJob description tab to generate questions.' : 'Paste the job description here.\n\nInclude the role’s skills, experience, and qualifications. The generator will turn these into editable screening questions.'} />
+            {showPrompt ? <QuestionPrompt job={job} /> : <Editor value={mode === 'questions' ? questionText : job} onChange={mode === 'questions' ? editQuestions : editJob} label={mode === 'questions' ? 'Questions JSON' : 'Job description text'} disabled={!!busy} maxLength={mode === 'job' ? 30000 : 100000} mono={mode === 'questions'} placeholder={mode === 'questions' ? '{\n  "role_python": {\n    "type": "noul",\n    "instructions": "Is Python experience documented?"\n  }\n}\n\nPaste your question map here, or use the\nJob description tab to generate questions.' : 'Paste the job description here.\n\nInclude the role’s skills, experience, and qualifications. The generator will turn these into editable screening questions.'} />}
           </div>
-          {mode === 'job' && <div className="generation-toolbar"><span>Review generated questions before screening.</span><button className="secondary-button" disabled={!!busy || !job.trim()} onClick={generate}>{busy === 'generate' ? <LoaderCircle className="spin" size={14} /> : <Braces size={14} />}{busy === 'generate' ? 'Generating…' : 'Generate questions'}<ArrowRight size={13} /></button></div>}
+          {mode === 'job' && !showPrompt && <div className="generation-toolbar"><span>Review generated questions before screening.</span><button className="secondary-button" disabled={!!busy || !job.trim()} onClick={generate}>{busy === 'generate' ? <LoaderCircle className="spin" size={14} /> : <Braces size={14} />}{busy === 'generate' ? 'Generating…' : 'Generate questions'}<ArrowRight size={13} /></button></div>}
           <div className="panel-status"><span>{mode === 'questions' ? count ? <><Check size={12} />{count} questions ready</> : questionText ? <><CircleAlert size={12} />Check question format</> : 'No questions yet' : 'Job description → questions'}</span><span>{mode === 'questions' ? 'JSON' : `${number.format(job.length)} / 30,000 characters`}</span></div>
         </section>
       </div>
