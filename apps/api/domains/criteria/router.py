@@ -1,17 +1,18 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from core.errors import FeatureNotImplementedError
 from core.response import StandardResponse
 from domains.criteria.factory import get_criteria_service
 from domains.criteria.model import CriteriaGenerationError, CriteriaGenerationTimeout
 from domains.criteria.prompt import SYSTEM_PROMPT
-from domains.criteria.schema import CriteriaResponse, GenerateCriteriaRequest
+from domains.criteria.schema import CriteriaResponse, GenerateCriteriaRequest, ValidateCriteriaRequest
 from domains.criteria.service import CriteriaService
 
 
 router = APIRouter(prefix="/criteria", tags=["criteria"])
+logger = logging.getLogger("CriteriaRouter")
 
 
 @router.post("/generate", response_model=CriteriaResponse)
@@ -28,9 +29,10 @@ async def generate(
     return CriteriaResponse(success=True, data=criteria)
 
 
-@router.post("/validate", status_code=501, response_model=None)
-async def validate() -> None:
-    raise FeatureNotImplementedError("Criteria validate is not implemented yet")
+@router.post("/validate", response_model=CriteriaResponse)
+def validate(request: ValidateCriteriaRequest) -> CriteriaResponse:
+    logger.info("criteria_validated question_count=%s", len(request.questions))
+    return CriteriaResponse(success=True, data=request)
 
 
 @router.get("/prompt", response_model=StandardResponse[str])

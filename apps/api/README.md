@@ -73,7 +73,7 @@ Add new features under `domains` and register their router in `api/router.py`.
 | `GET /api/health` | Returns `{"status": "ok"}` |
 | `POST /api/documents/parse` | Extracts an uploaded PDF into `StandardResponse[str]` |
 | `POST /api/criteria/generate` | Generates validated Jev questions from a job description |
-| `POST /api/criteria/validate` | Returns 501 |
+| `POST /api/criteria/validate` | Validates imported or edited criteria without a provider call |
 | `GET /api/criteria/prompt` | Returns the generation system prompt |
 | `POST /api/screen` | Screens resume text against a JSON string of Jev questions |
 
@@ -156,12 +156,27 @@ checks structure; review the generated requirements before screening.
 Invalid requests return 422. Invalid or empty generated questions and upstream
 failures return 502; provider timeouts return 504. Provider output is not echoed
 in error responses. The factory closes the generation client after each request;
-there are no automatic retries or stored results. `/criteria/validate` remains
-an unimplemented placeholder.
+there are no automatic retries or stored results.
 
 ```sh
 python -m unittest discover -s tests -p test_criteria.py -v
 ```
+
+## Criteria validation
+
+`POST /api/criteria/validate` accepts `{"questions": ...}`. The value can be a
+question-map object (such as `data.questions` from generation) or a JSON string
+containing that map, as used by screening.
+
+Validation uses the same contract as generated criteria: 1–20 questions with
+`role_` IDs, Choice type, nonblank instructions, and exactly the `meets`, `partial`,
+`does_not_meet`, and `insufficient_evidence` outcomes. Missing question types
+default to `choice`. Unknown fields and invalid shapes are rejected.
+
+Valid input returns `{"success": true, "data": {"questions": {...}}}`, with
+questions normalized to an object. Invalid input returns HTTP 422 with field-level
+errors. This endpoint does not require provider credentials or make model calls.
+It validates structure, not whether requirements accurately reflect a JD.
 
 ## Screening
 
