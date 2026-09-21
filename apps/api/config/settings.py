@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     openrouter_api_key: SecretStr
     jev_model: str = Field(default="~typesafe/jev-latest", min_length=1)
+    generator_model: str = Field(default="z-ai/glm-5.3", min_length=1, pattern=r"\S")
     provider_timeout_seconds: float = Field(default=25, gt=0, le=120)
 
     @field_validator("openrouter_api_key")

@@ -87,6 +87,45 @@ document tests from `apps/api`:
 python -m unittest discover -s tests -p test_documents.py -v
 ```
 
+## Generator through OpenRouter
+
+`integrations.generator.GeneratorProvider` calls OpenRouter's
+`/api/v1/chat/completions` endpoint using `GENERATOR_MODEL` (default:
+`z-ai/glm-5.3`). It shares `OPENROUTER_API_KEY` and
+`PROVIDER_TIMEOUT_SECONDS` with Jev. This integration accepts text messages;
+criteria prompts, structured question-pack validation, and domain wiring remain
+the responsibility of the future criteria service.
+
+```python
+from config.settings import Settings
+from integrations.generator import GeneratorMessage, GeneratorProvider
+
+
+async def generate(job_description: str) -> str:
+    generator = GeneratorProvider(Settings())
+    try:
+        result = await generator.hit([
+            GeneratorMessage(role="system", content="Extract job requirements from the supplied text."),
+            GeneratorMessage(role="user", content=job_description),
+        ])
+        return result.content
+    finally:
+        await generator.aclose()
+```
+
+The provider creates and reuses its HTTP client. Responses are validated with
+Pydantic; empty, truncated, or filtered completions are rejected. `result.content`
+contains the first completed answer, and `result.model_dump()` includes top-level
+metadata such as model and usage when returned. HTTP errors and timeouts propagate
+without retries. No paid requests are made by the mocked tests:
+
+```sh
+python -m unittest discover -s tests -p test_generator.py -v
+```
+
+See [GLM 5.3 on OpenRouter](https://openrouter.ai/z-ai/glm-5.3) and
+[OpenRouter's chat API quickstart](https://openrouter.ai/docs/quickstart).
+
 ## Jev through OpenRouter
 
 ```python
