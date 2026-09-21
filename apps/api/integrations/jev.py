@@ -1,5 +1,6 @@
 import logging
-from typing import Annotated, Literal
+from types import TracebackType
+from typing import Annotated, Literal, Self
 
 import httpx
 from pydantic import (
@@ -74,6 +75,10 @@ class JevResponse(BaseModel):
     answers: dict[str, JsonValue]
 
 
+class JevResponseError(ValueError):
+    """The response does not contain all requested answers."""
+
+
 class JevProvider:
     def __init__(self, settings: Settings) -> None:
         self._url = "https://openrouter.ai/api/alpha/decisions"
@@ -101,5 +106,20 @@ class JevProvider:
             response.raise_for_status()
             result = JevResponse.model_validate_json(response.content)
             if not payload.questions.keys() <= result.answers.keys():
-                raise ValueError("Jev response is missing requested answers")
+                raise JevResponseError("Jev response is missing requested answers")
             return result
+
+    async def aclose(self) -> None:
+        await self._client.aclose()
+
+    async def __aenter__(self) -> Self:
+        await self._client.__aenter__()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        await self.aclose()

@@ -75,7 +75,7 @@ Add new features under `domains` and register their router in `api/router.py`.
 | `POST /api/criteria/generate` | Generates validated Jev questions from a job description |
 | `POST /api/criteria/validate` | Returns 501 |
 | `GET /api/criteria/prompt` | Returns the generation system prompt |
-| `POST /api/screen` | Returns 501 |
+| `POST /api/screen` | Screens resume text against a JSON string of Jev questions |
 
 Unfinished services raise `FeatureNotImplementedError`, mapped to HTTP 501 by
 the application. These placeholder routes have no request bodies yet and do not
@@ -161,6 +161,44 @@ an unimplemented placeholder.
 
 ```sh
 python -m unittest discover -s tests -p test_criteria.py -v
+```
+
+## Screening
+
+`POST /api/screen` accepts two strings: `resume` (nonblank, up to 60,000 characters)
+and `questions` (a JSON-encoded map of 1–25 Jev questions).
+
+```json
+{
+  "resume": "Python developer with three years of API experience.",
+  "questions": "{\"python\":{\"type\":\"noul\",\"instructions\":\"Is Python mentioned?\"}}"
+}
+```
+
+For generated criteria, serialize `data.questions` from the criteria response
+using `JSON.stringify(...)` in JavaScript or `json.dumps(...)` in Python. Pass the
+question map itself, without an additional `questions` wrapper. Choice, Score,
+and Noul questions are supported.
+
+The endpoint validates both inputs, sends the resume as Jev's `state`, and returns
+`StandardResponse` with the validated Jev response in `data`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "answers": {"python": {"type": "noul", "noul": 0.9}}
+  }
+}
+```
+
+Provider metadata such as usage is preserved when present. Invalid input returns
+422 before any provider call. HTTP failures, malformed responses, and missing
+requested answers return 502; timeouts return 504. Calls are not retried. The
+factory closes the Jev client after every request, including failures.
+
+```sh
+python -m unittest discover -s tests -p test_screening.py -v
 ```
 
 ## Generator through OpenRouter
